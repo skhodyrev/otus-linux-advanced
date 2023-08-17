@@ -17,14 +17,14 @@ resource "yandex_compute_instance" "otus-vm-test" {
   network_interface {
     subnet_id      = yandex_vpc_subnet.otus_network_a.id
     nat            = true
-    nat_ip_address = yandex_vpc_address.otus_vm_public_address.external_ipv4_address[0].address
+    nat_ip_address = local.otus_vm_public_ip
   }
 
   metadata = {
     ssh-keys = "ubuntu:${file("~/.ssh/id_rsa.pub")}"
   }
 
-  depends_on = [yandex_vpc_address.otus_vm_public_address]
+  depends_on = [yandex_vpc_address.otus_vm_public_ip]
 }
 
 resource "yandex_vpc_network" "otus_vpc" {}
@@ -36,7 +36,7 @@ resource "yandex_vpc_subnet" "otus_network_a" {
 }
 
 
-resource "yandex_vpc_address" "otus_vm_public_address" {
+resource "yandex_vpc_address" "otus_vm_public_ip" {
   name = "otus-vm-public-address"
 
   external_ipv4_address {
@@ -51,7 +51,7 @@ resource "local_file" "AnsibleInventory" {
   content = templatefile("inventory.tmpl",
     {
       nginx_name    = yandex_compute_instance.otus-vm-test.name
-      nginx_ip      = yandex_vpc_address.otus_vm_public_address.external_ipv4_address[0].address
+      nginx_ip      = local.otus_vm_public_ip
       username      = "ubuntu",
       ssh_nginx_key = "~/.ssh/id_rsa"
     }
@@ -71,4 +71,9 @@ resource "null_resource" "run_ansible" {
   provisioner "local-exec" {
     command = "ansible-playbook nginx-install.yml"
   }
+}
+
+
+locals {
+  otus_vm_public_ip = yandex_vpc_address.otus_vm_public_ip.external_ipv4_address[0].address
 }
