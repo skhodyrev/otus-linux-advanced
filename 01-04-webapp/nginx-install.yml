@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: true
+  roles:
+    - common
+
+- hosts: nginx
+  become: true
+  roles:
+    - nginx
